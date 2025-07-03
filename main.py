@@ -23,6 +23,7 @@ def send_telegram_message(message):
     data = {"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML"}
     try:
         resp = requests.post(url, data=data, timeout=10)
+        print("Telegram response:", resp.status_code, resp.text)  # Debug print
         return resp.status_code == 200
     except Exception as e:
         print(f"Telegram error: {e}")
@@ -32,6 +33,7 @@ def get_github_devices_df():
     try:
         df = pd.read_csv(GITHUB_RAW_URL)
         df = df.fillna("")
+        print(f"Fetched {len(df)} devices from GitHub.")
         return df
     except Exception as e:
         print(f"Error fetching GitHub devices: {e}")
@@ -41,6 +43,7 @@ def get_google_devices_df():
     try:
         df = pd.read_html(GOOGLE_DEVICES_URL, header=0)[0]
         df = df.fillna("")
+        print(f"Fetched {len(df)} devices from Google.")
         return df
     except Exception as e:
         print(f"Error fetching Google devices: {e}")
@@ -48,8 +51,10 @@ def get_google_devices_df():
 
 def load_progress():
     if not os.path.exists(PROGRESS_FILE):
+        print("No progress file found. This is the first run.")
         return None  # None means first run
     with open(PROGRESS_FILE, "r") as f:
+        print("Loaded progress file.")
         return json.load(f)
 
 def save_progress(github_list, google_list):
@@ -60,6 +65,7 @@ def save_progress(github_list, google_list):
     }
     with open(PROGRESS_FILE, "w") as f:
         json.dump(data, f, indent=2)
+    print("Progress file saved.")
 
 def format_device_row(row, source):
     details = [f"🆕 <b>New device in {source} list:</b>"]
@@ -74,9 +80,11 @@ def check_for_status_command():
     try:
         resp = requests.get(url, timeout=10)
         if resp.status_code != 200:
+            print("Failed to get updates from Telegram.")
             return False
         data = resp.json()
         if not data.get("ok"):
+            print("Telegram getUpdates not ok.")
             return False
         # Check last 10 updates for /status command from the correct chat
         for update in reversed(data.get("result", [])[-10:]):
@@ -84,6 +92,7 @@ def check_for_status_command():
             if str(msg.get("chat", {}).get("id")) == str(CHAT_ID):
                 text = msg.get("text", "")
                 if text.strip().lower() == "/status":
+                    print("Received /status command.")
                     return True
         return False
     except Exception as e:
@@ -107,9 +116,11 @@ def send_status():
     send_telegram_message(msg)
 
 def main():
+    print("Script started.")
     # If /status command is received, reply and exit
     if check_for_status_command():
         send_status()
+        print("Status command handled. Exiting.")
         return
 
     lock = filelock.FileLock(LOCK_FILE)
@@ -144,7 +155,11 @@ def main():
             new_github_keys = set(github_keys) - set(prev_github_keys)
             new_google_keys = set(google_keys) - set(prev_google_keys)
 
+            print(f"New GitHub devices: {len(new_github_keys)}")
+            print(f"New Google devices: {len(new_google_keys)}")
+
             if first_run:
+                print("First run, sending start notification.")
                 send_telegram_message(
                     "🚀 Device checker is now active!\n"
                     "You will receive notifications for new devices from now on.\n"
@@ -154,17 +169,20 @@ def main():
             # Send each new GitHub device as a separate message
             for key in new_github_keys:
                 row = github_df[github_df["unique_key"] == key].iloc[0]
+                print(f"Sending new GitHub device: {key}")
                 send_telegram_message(format_device_row(row, "GitHub"))
                 time.sleep(1)  # To avoid hitting Telegram rate limits
 
             # Send each new Google device as a separate message
             for key in new_google_keys:
                 row = google_df[google_df["unique_key"] == key].iloc[0]
+                print(f"Sending new Google device: {key}")
                 send_telegram_message(format_device_row(row, "Google"))
                 time.sleep(1)  # To avoid hitting Telegram rate limits
 
             # If not first run and no new devices, send "no new devices" message
             if not first_run and not new_github_keys and not new_google_keys:
+                print("No new devices found, sending notification.")
                 send_telegram_message("✅ No new devices found in either list today.")
 
             # Save progress (list of unique keys)
