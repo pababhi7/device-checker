@@ -1,102 +1,93 @@
 import requests
 import pandas as pd
-import time
-from datetime import datetime
-import os
 import json
 import filelock
+from datetime import datetime
+import pytz
+import os
 
-BOT_TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
-CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
+# --- READ TELEGRAM BOT TOKEN AND CHAT ID FROM ENVIRONMENT VARIABLES ---
+BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
+# ---------------------------------------------------------------------
+
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/KHwang9883/MobileModels-csv/main/models.csv"
-PROGRESS_FILE = "device_progress.json"
-LOCK_FILE = "device_checker.lock"  # Add lock file
+GOOGLE_DEVICES_URL = "https://storage.googleapis.com/play_public/supported_devices.html"
 
-def save_progress(index, total_devices):
-    lock = filelock.FileLock(LOCK_FILE)
+PROGRESS_FILE = "device_progress.json"
+LOCK_FILE = "device_checker.lock"
+
+def send_telegram_message(message):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    data = {"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML"}
     try:
-        with lock.acquire(timeout=10):  # Wait up to 10 seconds for lock
-            progress_data = {
-                'last_sent_index': index,
-                'total_devices': total_devices,
-                'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            }
-            with open(PROGRESS_FILE, 'w') as f:
-                json.dump(progress_data, f)
-    except filelock.Timeout:
-        print("Could not acquire lock - another process is running")
+        resp = requests.post(url, data=data, timeout=10)
+        return resp.status_code == 200
+    except Exception as e:
+        print(f"Telegram error: {e}")
         return False
 
-def get_saved_progress():
-    lock = filelock.FileLock(LOCK_FILE)
+def get_github_devices():
     try:
-        with lock.acquire(timeout=10):
-            if os.path.exists(PROGRESS_FILE):
-                with open(PROGRESS_FILE, 'r') as f:
-                    data = json.load(f)
-                    return data.get('last_sent_index', 0)
-            return 0
-    except filelock.Timeout:
-        print("Could not acquire lock - another process is running")
-        return None
+        df = pd.read_csv(GITHUB_RAW_URL)
+        return set(df['Model'].astype(str).str.strip())
+    except Exception as e:
+        print(f"Error fetching GitHub devices: {e}")
+        return set()
 
-def check_for_updates():
+def get_google_devices():
+    try:
+        df = pd.read_html(GOOGLE_DEVICES_URL, header=0)[0]
+        return set(df['Model'].astype(str).str.strip())
+    except Exception as e:
+        print(f"Error fetching Google devices: {e}")
+        return set()
+
+def load_progress():
+    if not os.path.exists(PROGRESS_FILE):
+        return {"github": [], "google": [], "last_check": ""}
+    with open(PROGRESS_FILE, "r") as f:
+        return json.load(f)
+
+def save_progress(github_list, google_list):
+    data = {
+        "github": list(github_list),
+        "google": list(google_list),
+        "last_check": datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y-%m-%d %H:%M:%S")
+    }
+    with open(PROGRESS_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+def main():
     lock = filelock.FileLock(LOCK_FILE)
     try:
-        # Try to acquire lock
-        with lock.acquire(timeout=1):  # Short timeout to fail fast if already running
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            print(f"Starting check at {current_time}")
-            
-            last_sent_index = get_saved_progress()
-            if last_sent_index is None:
-                send_telegram_message("❌ Another check is currently running. Please wait.")
-                return
-            
-            df = get_devices_data()
-            if df is not None:
-                total_devices = len(df)
-                
-                if last_sent_index < total_devices:
-                    send_telegram_message(
-                        f"📱 Checking for new devices\n"
-                        f"Progress: {last_sent_index}/{total_devices}\n"
-                        f"Time: {current_time}"
-                    )
-                    
-                    try:
-                        for index, row in df.iloc[last_sent_index:].iterrows():
-                            message = format_device_message(row)
-                            if message:
-                                send_result = send_telegram_message(message)
-                                if send_result:
-                                    save_progress(index + 1, total_devices)
-                                    
-                                    if (index + 1) % 50 == 0:
-                                        progress_msg = (
-                                            f"📊 Progress Update:\n"
-                                            f"Sent: {index + 1}/{total_devices} devices\n"
-                                            f"Remaining: {total_devices - (index + 1)} devices"
-                                        )
-                                        send_telegram_message(progress_msg)
-                                
-                                time.sleep(1)
-                        
-                        send_telegram_message("✅ Update complete!")
-                        
-                    except Exception as e:
-                        error_message = (
-                            f"❌ Error during sending: {str(e)}\n"
-                            f"Will resume from device {last_sent_index + 1} in next run\n"
-                            f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                        )
-                        print(error_message)
-                        send_telegram_message(error_message)
-                else:
-                    print("No new devices to send")
-                    send_telegram_message("✅ Already up to date!")
-                    
+        with lock.acquire(timeout=30):
+            progress = load_progress()
+            prev_github = set(progress.get("github", []))
+            prev_google = set(progress.get("google", []))
+
+            github_devices = get_github_devices()
+            google_devices = get_google_devices()
+
+            new_github = github_devices - prev_github
+            new_google = google_devices - prev_google
+
+            messages = []
+            if new_github:
+                messages.append(f"🆕 <b>New devices in GitHub list:</b>\n" + "\n".join(sorted(new_github)))
+            if new_google:
+                messages.append(f"🆕 <b>New devices in Google list:</b>\n" + "\n".join(sorted(new_google)))
+
+            if messages:
+                for msg in messages:
+                    send_telegram_message(msg[:4096])  # Telegram max message size
+            else:
+                send_telegram_message("✅ No new devices found in either list today.")
+
+            save_progress(github_devices, google_devices)
     except filelock.Timeout:
+        print("Another process is running. Exiting.")
         send_telegram_message("❌ Another check is currently running. Please wait.")
-        print("Could not acquire lock - another process is running")
-      
+
+if __name__ == "__main__":
+    main()
