@@ -1,29 +1,23 @@
-name: Check Devices
+name: Daily Device Check
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Runs every 6 hours (4 times a day)
-  workflow_dispatch:  # Allows manual trigger
+    - cron: '30 14 * * *'  # 8:00 PM IST (14:30 UTC)
+  workflow_dispatch:
 
 jobs:
-  check-devices:
+  check_devices:
     runs-on: ubuntu-latest
-    
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
     steps:
-    - uses: actions/checkout@v2
-    
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Run device check
-      env:
-        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      run: python main.py
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install pandas requests filelock pytz lxml
+      - name: Run device checker
+        run: python main.py
