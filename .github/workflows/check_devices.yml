@@ -13,11 +13,30 @@ jobs:
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Restore device progress cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            device_progress.json
+            device_checker.lock
+          key: device-progress-cache
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - name: Install dependencies
         run: pip install pandas requests filelock pytz lxml
+
       - name: Run device checker
         run: python main.py
+
+      - name: Save device progress cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            device_progress.json
+            device_checker.lock
+          key: device-progress-cache
