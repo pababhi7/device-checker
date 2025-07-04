@@ -12,11 +12,15 @@ jobs:
   check-devices:
     runs-on: ubuntu-latest
     
+    permissions:
+      contents: write  # This gives permission to commit back to repo
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0  # Fetch full history
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -34,10 +38,17 @@ jobs:
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: python main.py
     
-    - name: Commit progress file
+    - name: Commit and push progress file
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add -A
-        git diff --staged --quiet || git commit -m "Update device progress - $(date)"
-        git push
+        
+        # Check if there are any changes
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "Changes detected, committing..."
+          git add device_progress.json
+          git commit -m "Update device progress - $(date '+%Y-%m-%d %H:%M:%S')"
+          git push
+        else
+          echo "No changes to commit"
+        fi
