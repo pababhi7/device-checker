@@ -90,17 +90,22 @@ def main():
         print(f"NBTC error: {e}")
         nbtc_ok = False
 
-    # --- Qi WPC (brand name substring match, case-insensitive, with User-Agent) ---
+    # --- Qi WPC (brand name substring match, case-insensitive, with User-Agent, debug) ---
     qi_ids = []
     qi_new_devices = []
     qi_ok = False
     try:
         qi_url = "https://jpsapi.wirelesspowerconsortium.com/products/qi"
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json"
         }
         resp = requests.get(qi_url, headers=headers, timeout=20)
-        data = resp.json()
+        try:
+            data = resp.json()
+        except Exception as e:
+            print("Qi WPC raw response:", resp.text)
+            raise
         for item in data.get("products", []):
             device_id = str(item.get("id"))
             brand = item.get("brandName", "").lower()
