@@ -90,7 +90,7 @@ def main():
         print(f"NBTC error: {e}")
         nbtc_ok = False
 
-    # --- Qi WPC (brand name only) ---
+    # --- Qi WPC (brand name substring match, case-insensitive) ---
     qi_ids = []
     qi_new_devices = []
     qi_ok = False
@@ -102,7 +102,7 @@ def main():
             device_id = str(item.get("id"))
             brand = item.get("brandName", "").lower()
             model = item.get("name", "")
-            if any(b == brand for b in SMARTPHONE_BRANDS):
+            if any(b in brand for b in SMARTPHONE_BRANDS):
                 qi_ids.append(device_id)
                 if not first_run and device_id not in progress["qi_wpc"]:
                     qi_new_devices.append((device_id, brand, model))
