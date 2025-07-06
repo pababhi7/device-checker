@@ -15,6 +15,13 @@ except KeyError as e:
 
 PROGRESS_FILE = "cert_sites_progress.json"
 
+SMARTPHONE_BRANDS = [
+    "samsung", "apple", "xiaomi", "redmi", "poco", "nothing", "oneplus", "oppo", "vivo", "realme", "iqoo", "huawei", "honor",
+    "google", "sony", "motorola", "nokia", "asus", "lenovo", "infinix", "tecno", "itel", "meizu", "zte", "sharp", "doogee",
+    "ulefone", "cat", "blu", "cubot", "blackview", "leeco", "tcl", "alcatel", "coolpad", "gionee", "vsmart", "wiko", "hisense",
+    "panasonic", "kyocera", "energizer"
+]
+
 def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     data = {"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML"}
@@ -61,6 +68,7 @@ def main():
 
     # --- NBTC ---
     nbtc_ids = []
+    nbtc_new_devices = []
     nbtc_ok = False
     try:
         nbtc_url = "https://hub.nbtc.go.th/api/certification"
@@ -69,15 +77,19 @@ def main():
         for item in data:
             device_type = item.get("device_type", "").lower()
             device_id = str(item.get("id"))
+            device_name = item.get("model_code", "")
             if any(x in device_type for x in ["smartphone", "smart phone", "phone", "mobile", "mobile phone", "mobile device"]):
                 nbtc_ids.append(device_id)
+                if device_id not in progress["nbtc"]:
+                    nbtc_new_devices.append((device_id, device_name, device_type))
         nbtc_ok = True
     except Exception as e:
         print(f"NBTC error: {e}")
         nbtc_ok = False
 
-    # --- Qi WPC ---
+    # --- Qi WPC (brand name only) ---
     qi_ids = []
+    qi_new_devices = []
     qi_ok = False
     try:
         qi_url = "https://jpsapi.wirelesspowerconsortium.com/products/qi"
@@ -85,9 +97,12 @@ def main():
         data = resp.json()
         for item in data.get("products", []):
             device_id = str(item.get("id"))
-            device_type = item.get("category", "").lower()
-            if any(x in device_type for x in ["smartphone", "smart phone", "phone", "mobile", "mobile phone", "mobile device"]):
+            brand = item.get("brandName", "").lower()
+            model = item.get("name", "")
+            if any(b == brand for b in SMARTPHONE_BRANDS):
                 qi_ids.append(device_id)
+                if device_id not in progress["qi_wpc"]:
+                    qi_new_devices.append((device_id, brand, model))
         qi_ok = True
     except Exception as e:
         print(f"Qi WPC error: {e}")
@@ -95,6 +110,7 @@ def main():
 
     # --- Audio JP ---
     audio_jp_ids = []
+    audio_jp_new_devices = []
     audio_jp_ok = False
     try:
         audio_jp_url = "https://www.jas-audio.or.jp/english/hi-res-logo-en/use-situation-en"
@@ -106,12 +122,25 @@ def main():
                 continue
             device_type = cols[3].text.strip().lower()
             device_id = cols[2].text.strip()
+            device_name = device_id
             if any(x in device_type for x in ["smartphone", "smart phone", "phone", "mobile", "mobile phone", "mobile device"]):
                 audio_jp_ids.append(device_id)
+                if device_id not in progress["audio_jp"]:
+                    audio_jp_new_devices.append((device_id, device_name, device_type))
         audio_jp_ok = True
     except Exception as e:
         print(f"Audio JP error: {e}")
         audio_jp_ok = False
+
+    # --- Per-device notifications for new devices ---
+    for device_id, device_name, device_type in nbtc_new_devices:
+        send_telegram_message(f"🆕 <b>NBTC</b> new device:\n<b>Name:</b> {device_name}\n<b>ID:</b> {device_id}\n<b>Type:</b> {device_type}\n<a href='https://hub.nbtc.go.th/certification'>NBTC Link</a>")
+
+    for device_id, brand, model in qi_new_devices:
+        send_telegram_message(f"🆕 <b>Qi WPC</b> new device:\n<b>Brand:</b> {brand}\n<b>Model:</b> {model}\n<b>ID:</b> {device_id}\n<a href='https://jpsapi.wirelesspowerconsortium.com/products/qi'>Qi WPC Link</a>")
+
+    for device_id, device_name, device_type in audio_jp_new_devices:
+        send_telegram_message(f"🆕 <b>Audio JP</b> new device:\n<b>Name:</b> {device_name}\n<b>ID:</b> {device_id}\n<b>Type:</b> {device_type}\n<a href='https://www.jas-audio.or.jp/english/hi-res-logo-en/use-situation-en'>Audio JP Link</a>")
 
     # --- Summary Report ---
     summary = (
@@ -120,24 +149,13 @@ def main():
         f"📊 <b>Current smartphone totals:</b>\n"
         f"• NBTC: {len(nbtc_ids)}\n"
         f"• Qi WPC: {len(qi_ids)}\n"
-        f"• Audio JP: {len(audio_jp_ids)}"
+        f"• Audio JP: {len(audio_jp_ids)}\n\n"
+        f"🆕 <b>New devices this run:</b>\n"
+        f"• NBTC: {len(nbtc_new_devices)}\n"
+        f"• Qi WPC: {len(qi_new_devices)}\n"
+        f"• Audio JP: {len(audio_jp_new_devices)}"
     )
-
-    # --- First run or full reset detection ---
-    first_run = (progress["nbtc"] == [] and progress["qi_wpc"] == [] and progress["audio_jp"] == [])
-    full_new = (
-        set(nbtc_ids) != set(progress["nbtc"]) or
-        set(qi_ids) != set(progress["qi_wpc"]) or
-        set(audio_jp_ids) != set(progress["audio_jp"])
-    )
-
-    if first_run or full_new:
-        send_telegram_message(
-            "🚨 <b>Device list is new or has been reset!</b>\n"
-            "All devices are now being tracked from scratch.\n\n" + summary
-        )
-    else:
-        send_telegram_message(summary)
+    send_telegram_message(summary)
 
     # Save progress
     progress["nbtc"] = nbtc_ids
