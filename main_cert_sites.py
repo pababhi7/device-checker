@@ -40,15 +40,17 @@ def send_telegram_message(message):
 def load_progress():
     if not os.path.exists(PROGRESS_FILE):
         print("📝 No progress file found - first run")
-        return {"nbtc": [], "qi_wpc": [], "audio_jp": [], "last_check": ""}
+        return {"nbtc": [], "qi_wpc": [], "audio_jp": [], "last_check": "", "initialized": False}
     try:
         with open(PROGRESS_FILE, "r") as f:
             data = json.load(f)
             print(f"📝 Progress loaded - last check: {data.get('last_check', 'Unknown')}")
+            if "initialized" not in data:
+                data["initialized"] = False
             return data
     except Exception as e:
         print(f"✗ Error loading progress: {e}")
-        return {"nbtc": [], "qi_wpc": [], "audio_jp": [], "last_check": ""}
+        return {"nbtc": [], "qi_wpc": [], "audio_jp": [], "last_check": "", "initialized": False}
 
 def save_progress(progress):
     progress["last_check"] = datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y-%m-%d %H:%M:%S")
@@ -65,6 +67,7 @@ def main():
     send_telegram_message(f"🔍 <b>Starting certification site check</b>\nTime: {start_time}")
 
     progress = load_progress()
+    first_run = not progress.get("initialized", False)
 
     # --- NBTC ---
     nbtc_ids = []
@@ -80,7 +83,7 @@ def main():
             device_name = item.get("model_code", "")
             if any(x in device_type for x in ["smartphone", "smart phone", "phone", "mobile", "mobile phone", "mobile device"]):
                 nbtc_ids.append(device_id)
-                if device_id not in progress["nbtc"]:
+                if not first_run and device_id not in progress["nbtc"]:
                     nbtc_new_devices.append((device_id, device_name, device_type))
         nbtc_ok = True
     except Exception as e:
@@ -101,7 +104,7 @@ def main():
             model = item.get("name", "")
             if any(b == brand for b in SMARTPHONE_BRANDS):
                 qi_ids.append(device_id)
-                if device_id not in progress["qi_wpc"]:
+                if not first_run and device_id not in progress["qi_wpc"]:
                     qi_new_devices.append((device_id, brand, model))
         qi_ok = True
     except Exception as e:
@@ -125,22 +128,23 @@ def main():
             device_name = device_id
             if any(x in device_type for x in ["smartphone", "smart phone", "phone", "mobile", "mobile phone", "mobile device"]):
                 audio_jp_ids.append(device_id)
-                if device_id not in progress["audio_jp"]:
+                if not first_run and device_id not in progress["audio_jp"]:
                     audio_jp_new_devices.append((device_id, device_name, device_type))
         audio_jp_ok = True
     except Exception as e:
         print(f"Audio JP error: {e}")
         audio_jp_ok = False
 
-    # --- Per-device notifications for new devices ---
-    for device_id, device_name, device_type in nbtc_new_devices:
-        send_telegram_message(f"🆕 <b>NBTC</b> new device:\n<b>Name:</b> {device_name}\n<b>ID:</b> {device_id}\n<b>Type:</b> {device_type}\n<a href='https://hub.nbtc.go.th/certification'>NBTC Link</a>")
+    # --- Per-device notifications for new devices (not on first run) ---
+    if not first_run:
+        for device_id, device_name, device_type in nbtc_new_devices:
+            send_telegram_message(f"🆕 <b>NBTC</b> new device:\n<b>Name:</b> {device_name}\n<b>ID:</b> {device_id}\n<b>Type:</b> {device_type}\n<a href='https://hub.nbtc.go.th/certification'>NBTC Link</a>")
 
-    for device_id, brand, model in qi_new_devices:
-        send_telegram_message(f"🆕 <b>Qi WPC</b> new device:\n<b>Brand:</b> {brand}\n<b>Model:</b> {model}\n<b>ID:</b> {device_id}\n<a href='https://jpsapi.wirelesspowerconsortium.com/products/qi'>Qi WPC Link</a>")
+        for device_id, brand, model in qi_new_devices:
+            send_telegram_message(f"🆕 <b>Qi WPC</b> new device:\n<b>Brand:</b> {brand}\n<b>Model:</b> {model}\n<b>ID:</b> {device_id}\n<a href='https://jpsapi.wirelesspowerconsortium.com/products/qi'>Qi WPC Link</a>")
 
-    for device_id, device_name, device_type in audio_jp_new_devices:
-        send_telegram_message(f"🆕 <b>Audio JP</b> new device:\n<b>Name:</b> {device_name}\n<b>ID:</b> {device_id}\n<b>Type:</b> {device_type}\n<a href='https://www.jas-audio.or.jp/english/hi-res-logo-en/use-situation-en'>Audio JP Link</a>")
+        for device_id, device_name, device_type in audio_jp_new_devices:
+            send_telegram_message(f"🆕 <b>Audio JP</b> new device:\n<b>Name:</b> {device_name}\n<b>ID:</b> {device_id}\n<b>Type:</b> {device_type}\n<a href='https://www.jas-audio.or.jp/english/hi-res-logo-en/use-situation-en'>Audio JP Link</a>")
 
     # --- Summary Report ---
     summary = (
@@ -155,12 +159,19 @@ def main():
         f"• Qi WPC: {len(qi_new_devices)}\n"
         f"• Audio JP: {len(audio_jp_new_devices)}"
     )
-    send_telegram_message(summary)
+    if first_run:
+        send_telegram_message(
+            "🚨 <b>Baseline established!</b>\n"
+            "All current devices are now tracked. You will receive notifications for new devices from the next run.\n\n" + summary
+        )
+    else:
+        send_telegram_message(summary)
 
     # Save progress
     progress["nbtc"] = nbtc_ids
     progress["qi_wpc"] = qi_ids
     progress["audio_jp"] = audio_jp_ids
+    progress["initialized"] = True
     save_progress(progress)
     print("✅ Script completed successfully")
 
