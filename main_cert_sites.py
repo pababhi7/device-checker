@@ -16,11 +16,8 @@ except KeyError as e:
 
 PROGRESS_FILE = "cert_sites_progress.json"
 
-SMARTPHONE_BRANDS = [
-    "samsung", "apple", "xiaomi", "redmi", "poco", "nothing", "oneplus", "oppo", "vivo", "realme", "iqoo", "huawei", "honor",
-    "google", "sony", "motorola", "nokia", "asus", "lenovo", "infinix", "tecno", "itel", "meizu", "zte", "sharp", "doogee",
-    "ulefone", "cat", "blu", "cubot", "blackview", "leeco", "tcl", "alcatel", "coolpad", "gionee", "vsmart", "wiko", "hisense",
-    "panasonic", "kyocera", "energizer"
+SMARTPHONE_KEYWORDS = [
+    "phone", "mobile", "smartphone", "smart phone", "mobile phone", "5g digital mobile phone"
 ]
 
 def send_telegram_message(message):
@@ -82,7 +79,7 @@ def main():
             device_type = item.get("device_type", "").lower()
             device_id = str(item.get("id"))
             device_name = item.get("model_code", "")
-            if any(x in device_type for x in ["smartphone", "smart phone", "phone", "mobile", "mobile phone", "mobile device"]):
+            if any(x in device_type for x in SMARTPHONE_KEYWORDS):
                 nbtc_ids.append(device_id)
                 if not first_run and device_id not in progress["nbtc"]:
                     nbtc_new_devices.append((device_id, device_name, device_type))
@@ -91,7 +88,7 @@ def main():
         print(f"NBTC error: {e}")
         nbtc_ok = False
 
-    # --- Qi WPC (API or Playwright fallback) ---
+    # --- Qi WPC (API or Playwright fallback, product name only) ---
     qi_ids = []
     qi_new_devices = []
     qi_ok = False
@@ -107,12 +104,11 @@ def main():
             data = resp.json()
             for item in data.get("products", []):
                 device_id = str(item.get("id"))
-                brand = item.get("brandName", "").lower()
-                model = item.get("name", "")
-                if any(b in brand for b in SMARTPHONE_BRANDS):
+                product_name = item.get("name", "").lower()
+                if any(word in product_name for word in SMARTPHONE_KEYWORDS):
                     qi_ids.append(device_id)
                     if not first_run and device_id not in progress["qi_wpc"]:
-                        qi_new_devices.append((device_id, brand, model))
+                        qi_new_devices.append((device_id, product_name))
             qi_ok = True
         except Exception as e:
             print(f"Qi WPC API failed, falling back to Playwright: {e}")
@@ -129,13 +125,12 @@ def main():
                 cols = row.find_all("td")
                 if not cols or len(cols) < 3:
                     continue
-                brand = cols[0].text.strip().lower()
                 device_id = cols[1].text.strip()
-                model = cols[2].text.strip()
-                if any(b in brand for b in SMARTPHONE_BRANDS):
+                product_name = cols[2].text.strip().lower()
+                if any(word in product_name for word in SMARTPHONE_KEYWORDS):
                     qi_ids.append(device_id)
                     if not first_run and device_id not in progress["qi_wpc"]:
-                        qi_new_devices.append((device_id, brand, model))
+                        qi_new_devices.append((device_id, product_name))
             qi_ok = True
     except Exception as e:
         print(f"Qi WPC error: {e}")
@@ -156,7 +151,7 @@ def main():
             device_type = cols[3].text.strip().lower()
             device_id = cols[2].text.strip()
             device_name = device_id
-            if any(x in device_type for x in ["smartphone", "smart phone", "phone", "mobile", "mobile phone", "mobile device"]):
+            if any(x in device_type for x in SMARTPHONE_KEYWORDS):
                 audio_jp_ids.append(device_id)
                 if not first_run and device_id not in progress["audio_jp"]:
                     audio_jp_new_devices.append((device_id, device_name, device_type))
@@ -170,8 +165,8 @@ def main():
         for device_id, device_name, device_type in nbtc_new_devices:
             send_telegram_message(f"🆕 <b>NBTC</b> new device:\n<b>Name:</b> {device_name}\n<b>ID:</b> {device_id}\n<b>Type:</b> {device_type}\n<a href='https://hub.nbtc.go.th/certification'>NBTC Link</a>")
 
-        for device_id, brand, model in qi_new_devices:
-            send_telegram_message(f"🆕 <b>Qi WPC</b> new device:\n<b>Brand:</b> {brand}\n<b>Model:</b> {model}\n<b>ID:</b> {device_id}\n<a href='https://www.wirelesspowerconsortium.com/products/qi.html'>Qi WPC Link</a>")
+        for device_id, product_name in qi_new_devices:
+            send_telegram_message(f"🆕 <b>Qi WPC</b> new device:\n<b>Product Name:</b> {product_name}\n<b>ID:</b> {device_id}\n<a href='https://www.wirelesspowerconsortium.com/products/qi.html'>Qi WPC Link</a>")
 
         for device_id, device_name, device_type in audio_jp_new_devices:
             send_telegram_message(f"🆕 <b>Audio JP</b> new device:\n<b>Name:</b> {device_name}\n<b>ID:</b> {device_id}\n<b>Type:</b> {device_type}\n<a href='https://www.jas-audio.or.jp/english/hi-res-logo-en/use-situation-en'>Audio JP Link</a>")
