@@ -69,7 +69,7 @@ def main():
         for item in data:
             device_type = item.get("device_type", "").lower()
             device_id = str(item.get("id"))
-            if "smartphone" in device_type or "phone" in device_type or "mobile" in device_type:
+            if any(x in device_type for x in ["smartphone", "smart phone", "phone", "mobile", "mobile phone", "mobile device"]):
                 nbtc_ids.append(device_id)
         nbtc_ok = True
     except Exception as e:
@@ -86,7 +86,7 @@ def main():
         for item in data.get("products", []):
             device_id = str(item.get("id"))
             device_type = item.get("category", "").lower()
-            if "smartphone" in device_type or "phone" in device_type or "mobile" in device_type:
+            if any(x in device_type for x in ["smartphone", "smart phone", "phone", "mobile", "mobile phone", "mobile device"]):
                 qi_ids.append(device_id)
         qi_ok = True
     except Exception as e:
@@ -106,7 +106,7 @@ def main():
                 continue
             device_type = cols[3].text.strip().lower()
             device_id = cols[2].text.strip()
-            if "smartphone" in device_type or "phone" in device_type or "mobile" in device_type:
+            if any(x in device_type for x in ["smartphone", "smart phone", "phone", "mobile", "mobile phone", "mobile device"]):
                 audio_jp_ids.append(device_id)
         audio_jp_ok = True
     except Exception as e:
