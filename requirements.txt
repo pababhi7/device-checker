@@ -6,4 +6,4 @@ lxml
 playwright
 beautifulsoup4
 requests
-pytz
+playwright-stealth
