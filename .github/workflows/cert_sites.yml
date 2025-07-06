@@ -1,0 +1,32 @@
+name: Cert Sites Scraper
+
+on:
+  schedule:
+    # 4am, 5am, 6am IST (IST = UTC+5:30)
+    - cron: '30 22 * * *'  # 4:00am IST
+    - cron: '30 23 * * *'  # 5:00am IST
+    - cron: '30 0 * * *'   # 6:00am IST
+  workflow_dispatch:
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 pytz
+
+      - name: Run cert sites scraper
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main_cert_sites.py
