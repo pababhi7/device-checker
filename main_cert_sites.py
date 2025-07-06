@@ -88,7 +88,7 @@ def main():
         print(f"NBTC error: {e}")
         nbtc_ok = False
 
-    # --- Qi WPC (API or Playwright fallback, product name only) ---
+    # --- Qi WPC (ALL DEVICES, API or Playwright fallback) ---
     qi_ids = []
     qi_new_devices = []
     qi_ok = False
@@ -104,11 +104,10 @@ def main():
             data = resp.json()
             for item in data.get("products", []):
                 device_id = str(item.get("id"))
-                product_name = item.get("name", "").lower()
-                if any(word in product_name for word in SMARTPHONE_KEYWORDS):
-                    qi_ids.append(device_id)
-                    if not first_run and device_id not in progress["qi_wpc"]:
-                        qi_new_devices.append((device_id, product_name))
+                product_name = item.get("name", "")
+                qi_ids.append(device_id)
+                if not first_run and device_id not in progress["qi_wpc"]:
+                    qi_new_devices.append((device_id, product_name))
             qi_ok = True
         except Exception as e:
             print(f"Qi WPC API failed, falling back to Playwright: {e}")
@@ -126,11 +125,10 @@ def main():
                 if not cols or len(cols) < 3:
                     continue
                 device_id = cols[1].text.strip()
-                product_name = cols[2].text.strip().lower()
-                if any(word in product_name for word in SMARTPHONE_KEYWORDS):
-                    qi_ids.append(device_id)
-                    if not first_run and device_id not in progress["qi_wpc"]:
-                        qi_new_devices.append((device_id, product_name))
+                product_name = cols[2].text.strip()
+                qi_ids.append(device_id)
+                if not first_run and device_id not in progress["qi_wpc"]:
+                    qi_new_devices.append((device_id, product_name))
             qi_ok = True
     except Exception as e:
         print(f"Qi WPC error: {e}")
@@ -175,7 +173,7 @@ def main():
     summary = (
         "✅ <b>Certification site check completed</b>\n"
         f"Time: {datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-        f"📊 <b>Current smartphone totals:</b>\n"
+        f"📊 <b>Current device totals:</b>\n"
         f"• NBTC: {len(nbtc_ids)}\n"
         f"• Qi WPC: {len(qi_ids)}\n"
         f"• Audio JP: {len(audio_jp_ids)}\n\n"
