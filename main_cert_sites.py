@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 import pytz
 from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 
 try:
     BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
@@ -90,31 +91,52 @@ def main():
         print(f"NBTC error: {e}")
         nbtc_ok = False
 
-    # --- Qi WPC (brand name substring match, case-insensitive, with User-Agent, debug) ---
+    # --- Qi WPC (API or Playwright fallback) ---
     qi_ids = []
     qi_new_devices = []
     qi_ok = False
     try:
-        qi_url = "https://jpsapi.wirelesspowerconsortium.com/products/qi"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/json"
-        }
-        resp = requests.get(qi_url, headers=headers, timeout=20)
+        # Try API first
         try:
+            qi_url = "https://jpsapi.wirelesspowerconsortium.com/products/qi"
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/json"
+            }
+            resp = requests.get(qi_url, headers=headers, timeout=20)
             data = resp.json()
+            for item in data.get("products", []):
+                device_id = str(item.get("id"))
+                brand = item.get("brandName", "").lower()
+                model = item.get("name", "")
+                if any(b in brand for b in SMARTPHONE_BRANDS):
+                    qi_ids.append(device_id)
+                    if not first_run and device_id not in progress["qi_wpc"]:
+                        qi_new_devices.append((device_id, brand, model))
+            qi_ok = True
         except Exception as e:
-            print("Qi WPC raw response:", resp.text)
-            raise
-        for item in data.get("products", []):
-            device_id = str(item.get("id"))
-            brand = item.get("brandName", "").lower()
-            model = item.get("name", "")
-            if any(b in brand for b in SMARTPHONE_BRANDS):
-                qi_ids.append(device_id)
-                if not first_run and device_id not in progress["qi_wpc"]:
-                    qi_new_devices.append((device_id, brand, model))
-        qi_ok = True
+            print(f"Qi WPC API failed, falling back to Playwright: {e}")
+            # Fallback: Scrape the website table with Playwright
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                page = browser.new_page()
+                page.goto("https://www.wirelesspowerconsortium.com/products/qi.html")
+                page.wait_for_timeout(10000)  # Wait for JS to load table
+                html = page.content()
+                browser.close()
+            soup = BeautifulSoup(html, "html.parser")
+            for row in soup.select("table#product_db tbody tr"):
+                cols = row.find_all("td")
+                if not cols or len(cols) < 3:
+                    continue
+                brand = cols[0].text.strip().lower()
+                device_id = cols[1].text.strip()
+                model = cols[2].text.strip()
+                if any(b in brand for b in SMARTPHONE_BRANDS):
+                    qi_ids.append(device_id)
+                    if not first_run and device_id not in progress["qi_wpc"]:
+                        qi_new_devices.append((device_id, brand, model))
+            qi_ok = True
     except Exception as e:
         print(f"Qi WPC error: {e}")
         qi_ok = False
@@ -149,7 +171,7 @@ def main():
             send_telegram_message(f"🆕 <b>NBTC</b> new device:\n<b>Name:</b> {device_name}\n<b>ID:</b> {device_id}\n<b>Type:</b> {device_type}\n<a href='https://hub.nbtc.go.th/certification'>NBTC Link</a>")
 
         for device_id, brand, model in qi_new_devices:
-            send_telegram_message(f"🆕 <b>Qi WPC</b> new device:\n<b>Brand:</b> {brand}\n<b>Model:</b> {model}\n<b>ID:</b> {device_id}\n<a href='https://jpsapi.wirelesspowerconsortium.com/products/qi'>Qi WPC Link</a>")
+            send_telegram_message(f"🆕 <b>Qi WPC</b> new device:\n<b>Brand:</b> {brand}\n<b>Model:</b> {model}\n<b>ID:</b> {device_id}\n<a href='https://www.wirelesspowerconsortium.com/products/qi.html'>Qi WPC Link</a>")
 
         for device_id, device_name, device_type in audio_jp_new_devices:
             send_telegram_message(f"🆕 <b>Audio JP</b> new device:\n<b>Name:</b> {device_name}\n<b>ID:</b> {device_id}\n<b>Type:</b> {device_type}\n<a href='https://www.jas-audio.or.jp/english/hi-res-logo-en/use-situation-en'>Audio JP Link</a>")
