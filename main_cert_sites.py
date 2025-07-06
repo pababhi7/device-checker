@@ -5,6 +5,7 @@ from datetime import datetime
 import pytz
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
+from playwright_stealth import stealth_sync
 
 try:
     BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
@@ -88,7 +89,7 @@ def main():
         print(f"NBTC error: {e}")
         nbtc_ok = False
 
-    # --- Qi WPC (ALL DEVICES, API or Playwright fallback, with debug) ---
+    # --- Qi WPC (ALL DEVICES, Playwright stealth fallback, with debug) ---
     qi_ids = []
     qi_new_devices = []
     qi_ok = False
@@ -110,15 +111,23 @@ def main():
                     qi_new_devices.append((device_id, product_name))
             qi_ok = True
         except Exception as e:
-            print(f"Qi WPC API failed, falling back to Playwright: {e}")
-            # Fallback: Scrape the website table with Playwright
+            print(f"Qi WPC API failed, falling back to Playwright stealth: {e}")
+            # Fallback: Scrape the website table with Playwright stealth
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
-                page.goto("https://www.wirelesspowerconsortium.com/products/qi.html")
-                page.wait_for_timeout(20000)  # Wait longer for JS to load table
+                context = browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    viewport={"width": 1280, "height": 800},
+                    locale="en-US"
+                )
+                page = context.new_page()
+                stealth_sync(page)
+                page.goto("https://www.wirelesspowerconsortium.com/products/qi.html", timeout=60000)
+                page.wait_for_selector("table#product_db", timeout=30000)
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                page.wait_for_timeout(5000)
                 html = page.content()
-                print("Qi WPC Playwright HTML snippet:", html[:2000])  # Print first 2000 chars for debug
+                print("Qi WPC Playwright HTML snippet:", html[:2000])
                 browser.close()
             soup = BeautifulSoup(html, "html.parser")
             for row in soup.select("table#product_db tbody tr"):
