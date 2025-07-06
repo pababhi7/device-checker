@@ -5,5 +5,3 @@ pytz
 lxml
 playwright
 beautifulsoup4
-requests
-playwright-stealth
