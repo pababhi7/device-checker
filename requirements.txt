@@ -3,3 +3,7 @@ requests
 filelock
 pytz
 lxml
+playwright
+beautifulsoup4
+requests
+pytz
