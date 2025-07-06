@@ -5,7 +5,6 @@ from datetime import datetime
 import pytz
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_sync
 
 try:
     BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
@@ -89,7 +88,7 @@ def main():
         print(f"NBTC error: {e}")
         nbtc_ok = False
 
-    # --- Qi WPC (ALL DEVICES, Playwright stealth fallback, with debug) ---
+    # --- Qi WPC (ALL DEVICES, API or Playwright fallback, with debug) ---
     qi_ids = []
     qi_new_devices = []
     qi_ok = False
@@ -111,8 +110,8 @@ def main():
                     qi_new_devices.append((device_id, product_name))
             qi_ok = True
         except Exception as e:
-            print(f"Qi WPC API failed, falling back to Playwright stealth: {e}")
-            # Fallback: Scrape the website table with Playwright stealth
+            print(f"Qi WPC API failed, falling back to Playwright: {e}")
+            # Fallback: Scrape the website table with Playwright
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)
                 context = browser.new_context(
@@ -121,11 +120,8 @@ def main():
                     locale="en-US"
                 )
                 page = context.new_page()
-                stealth_sync(page)
                 page.goto("https://www.wirelesspowerconsortium.com/products/qi.html", timeout=60000)
-                page.wait_for_selector("table#product_db", timeout=30000)
-                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                page.wait_for_timeout(5000)
+                page.wait_for_timeout(20000)  # Wait longer for JS to load table
                 html = page.content()
                 print("Qi WPC Playwright HTML snippet:", html[:2000])
                 browser.close()
