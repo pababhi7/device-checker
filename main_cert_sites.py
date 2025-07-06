@@ -88,7 +88,7 @@ def main():
         print(f"NBTC error: {e}")
         nbtc_ok = False
 
-    # --- Qi WPC (ALL DEVICES, API or Playwright fallback) ---
+    # --- Qi WPC (ALL DEVICES, API or Playwright fallback, with debug) ---
     qi_ids = []
     qi_new_devices = []
     qi_ok = False
@@ -116,8 +116,9 @@ def main():
                 browser = p.chromium.launch(headless=True)
                 page = browser.new_page()
                 page.goto("https://www.wirelesspowerconsortium.com/products/qi.html")
-                page.wait_for_timeout(10000)  # Wait for JS to load table
+                page.wait_for_timeout(20000)  # Wait longer for JS to load table
                 html = page.content()
+                print("Qi WPC Playwright HTML snippet:", html[:2000])  # Print first 2000 chars for debug
                 browser.close()
             soup = BeautifulSoup(html, "html.parser")
             for row in soup.select("table#product_db tbody tr"):
