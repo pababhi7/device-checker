@@ -43506,6 +43506,7 @@
     "Galaxy S24|SC-51E|SC-51E",
     "Galaxy S24|SCG25|SCG25",
     "Galaxy S24|e1q|SM-S9210",
+    "Galaxy S24|e1q|SM-S921E",
     "Galaxy S24|e1q|SM-S921Q",
     "Galaxy S24|e1q|SM-S921U",
     "Galaxy S24|e1q|SM-S921U1",
@@ -45400,6 +45401,7 @@
     "SH-H01|VZJ|SH-H01",
     "SH-M04|SH-M04|SH-M04",
     "SH-T01|OG6|SH-T01",
+    "SH-T04C|ST4|SH-T04C",
     "SH80F|SH80F|SH80F",
     "SH8118U|msm7627|SH8118U",
     "SH8128U|msm7627|SH8128U",
@@ -52901,8 +52903,6 @@
     "iQOO Pad Air|DPD2305|iPA2451",
     "iQOO Pad2|DPD2345|iPA2453",
     "iQOO Pad2 Pro|DPD2329|iPA2475",
-    "iQOO Pad5e|DPD2345|iPA2453",
-    "iQOO Pad5e|DPD2345|iPA2537",
     "iQOO Z10 5G|I2407|I2407",
     "iQOO Z10 Turbo Pro|PD2453|V2453A",
     "iQOO Z10x|PD2445|V2445A",
@@ -58291,7 +58291,7 @@
     "Zyrex ZA833|ZA833|ZA833",
     "zyrex|ZT216_7|ZT216_7"
   ],
-  "last_check": "2025-07-06 22:11:54",
+  "last_check": "2025-07-07 18:47:26",
   "github_count": 10009,
   "google_count": 48279
 }
