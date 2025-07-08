@@ -9924,6 +9924,7 @@
     "JLG-AN00",
     "JLG-AN00",
     "JLG-AN80",
+    "SHR-AN00",
     "BRO-W00",
     "MASH-16",
     "MASH-32",
@@ -16702,6 +16703,7 @@
     "NOTE 30|NOTE_30|NOTE 30",
     "NOTE 40|NOTE_40|NOTE 40",
     "NOTE 50|NOTE_50|NOTE 50",
+    "NOTE 60|NOTE_60|NOTE 60",
     "NOTE 7|NOTE_7|NOTE 7",
     "NOTE 8|NOTE_8|NOTE 8",
     "NOTE 9|NOTE_9|NOTE 9",
@@ -23458,6 +23460,7 @@
     "HONOR Pad 9|HNHEY2-Q|HEY2-N09",
     "HONOR Pad 9|HNHEY2-Q|HEY2-W09",
     "HONOR Pad V9|HNROL-M1|ROL-W00",
+    "HONOR Pad X7|JMS-W09|JMS-W09",
     "HONOR Pad X8|HNAGM3|AGM3-AL09HN",
     "HONOR Pad X8|HNAGM3|AGM3-W09HN",
     "HONOR Pad X8 Lite|HNAGM|AGM-W09HN",
@@ -51587,6 +51590,7 @@
     "L10-M01|TAB12_Pro|L10-M01",
     "L10-T01|L10-T01|L10-T01",
     "L10-T02|L10-T02|L10-T02",
+    "L10-T02|L10-T02|VISION Tab",
     "L10-T02-EEA|L10-T02-EEA|L10-T02",
     "L10-T02-EEA|L10-T02-EEA|L10-T02-EEA",
     "L10-T11|L10-T11|L10-T11",
@@ -52316,6 +52320,7 @@
     "Life|VisionTouchLife|VisionTouchLife",
     "Elite10QH|Elite10QH|Elite10QH",
     "Elite10QHPro|Elite10QHPro|Elite10QHPro",
+    "P11P|Prestige_P11_Pro|Prestige_P11_Pro",
     "Prestige Elite10QI|Elite10QI|Elite10QI",
     "Prestige Elite10QL|Elite10QL|Elite10QL",
     "Prestige Elite10QS|Elite10QS|Elite10QS",
@@ -58291,7 +58296,7 @@
     "Zyrex ZA833|ZA833|ZA833",
     "zyrex|ZT216_7|ZT216_7"
   ],
-  "last_check": "2025-07-07 20:15:30",
-  "github_count": 10009,
-  "google_count": 48279
+  "last_check": "2025-07-08 20:16:02",
+  "github_count": 10010,
+  "google_count": 48283
 }
