@@ -13052,6 +13052,7 @@
     "V60|Azumi_V60|V60",
     "V61|Azumi_V61|Azumi_V61",
     "V66|AZUMI_V66|Azumi_V66",
+    "F11Pro|F11Pro|F11Pro",
     "L10|M10_A03_EEA|L10",
     "M10|M10_A03|M10",
     "BALMUDA Phone|A101BM|A101BM",
@@ -58412,7 +58413,7 @@
     "Zyrex ZA833|ZA833|ZA833",
     "zyrex|ZT216_7|ZT216_7"
   ],
-  "last_check": "2025-07-13 20:12:42",
+  "last_check": "2025-07-14 20:17:49",
   "github_count": 10049,
-  "google_count": 48360
+  "google_count": 48361
 }
