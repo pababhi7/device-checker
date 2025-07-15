@@ -19964,6 +19964,7 @@
     "T099|T099|T099",
     "B-52|176HS1050232|176HS1050232",
     "CP80K|CP80K|CP80K",
+    "CP80K|CP80K|FunPad-8Max",
     "DRONE|FMT-NM7108-01|FMT-NM7108-01",
     "Dual 8|FMT-NT8A42-01|FMT-NT8A42-01",
     "Eagle|175WT1050231|175WT1050231",
@@ -37879,8 +37880,8 @@
     "P9001|P9001|P9001",
     "ACT|POS|pCloud",
     "MINT|POS|pCloud",
-    "PPGLRR76|POS|pCloud",
     "mPOS|POS|pCloud",
+    "mPOS-R|POS|pCloud",
     "OrderGo5_EEA|OrderGo5|OrderGo5",
     "OrderGo_6_TR|OrderGo_6|OrderGo 6",
     "L211-EEA|L211-EEA|L211-EEA",
@@ -57967,6 +57968,7 @@
     "RMX5000|RE6066L1|RMX5000",
     "RMX5061|RE60ADL1|RMX5061",
     "RMX5303|RE60B8|RMX5303",
+    "RMX5313|RE60BA|RMX5313",
     "Smart TV|mateo|2K PA Smart TV",
     "Smart TV|redwood|AI PONT",
     "TV Stick|BOS|TV Stick",
@@ -58107,6 +58109,8 @@
     "realme Note 50|RE5C9F|RMX3834",
     "realme Note 60|RE6054|RMX3933",
     "realme Note 60x|RE6095|RMX3938",
+    "realme Note 70|RE60BA|RMX5313",
+    "realme Note 70T|RE60BA|RMX5313",
     "realme P1 5G|RE5C86L1|RMX3870",
     "realme P1 Pro 5G|RE5C84L1|RMX3844",
     "realme P1 Speed 5G|RE6066L1|RMX5004",
@@ -58413,7 +58417,7 @@
     "Zyrex ZA833|ZA833|ZA833",
     "zyrex|ZT216_7|ZT216_7"
   ],
-  "last_check": "2025-07-14 20:17:49",
+  "last_check": "2025-07-15 20:16:57",
   "github_count": 10049,
-  "google_count": 48361
+  "google_count": 48365
 }
