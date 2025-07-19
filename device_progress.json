@@ -7659,6 +7659,7 @@
     "V1965A",
     "V2023EA",
     "V2443A",
+    "V2443A",
     "V2443BA",
     "V2002A",
     "V2057A",
@@ -7760,6 +7761,7 @@
     "V1928T",
     "V1962BA",
     "V2318A",
+    "V2443A",
     "V1824BA",
     "V1824A",
     "V1922A",
@@ -15228,6 +15230,7 @@
     "Coco10_Ultra_4G|Coco10_Ultra_4G|Coco10_Ultra_4G",
     "G60|G60|G60",
     "G60_Pro_4G|G60_Pro_4G|G60_Pro_4G",
+    "IS_IFPSeries_65|IS_Panel|IS_IFPSeries",
     "Note13|Note13|Note13",
     "Play25_Pro_4G|Play25_Pro_4G|Play25_Pro_4G",
     "R10|R10S|R10",
@@ -58460,7 +58463,7 @@
     "Zyrex ZA833|ZA833|ZA833",
     "zyrex|ZT216_7|ZT216_7"
   ],
-  "last_check": "2025-07-18 20:17:59",
-  "github_count": 10058,
-  "google_count": 48399
+  "last_check": "2025-07-19 20:13:05",
+  "github_count": 10060,
+  "google_count": 48400
 }
