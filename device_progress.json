@@ -32188,6 +32188,8 @@
     "S11|S11|S11",
     "S6|S6|S6",
     "Tab-1|Tab-1|Tab-1",
+    "Mollie_Tap|Mollie_Tap|Mollie Tap",
+    "Mollie_Tap_EEA|Mollie_Tap_EEA|Mollie Tap EEA",
     "Max Play|DV6071Z-KTM|Max Play",
     "M90|M90|M90",
     "Movi Projector Phone|Movi|Movi Projector Phone",
@@ -36930,6 +36932,10 @@
     "K12x 5G|OP5A1F|PJT110",
     "K12x 5G|OP5B05L1|CPH2667",
     "K13 5G|OP5EE3L1|CPH2729",
+    "K13 Turbo 5G|OP5E05L1|PLM110",
+    "K13 Turbo 5G|OP5EE9L1|CPH2761",
+    "K13 Turbo Pro 5G|OP5E03L1|PLE110",
+    "K13 Turbo Pro 5G|OP5EE7L1|CPH2731",
     "K13x 5G|OP5EF7L1|CPH2753",
     "K3|OP4679|PCGM00",
     "K3|OP4679|PCGT00",
@@ -58383,6 +58389,7 @@
     "X200 FE|V2503|V2505",
     "Y04e|V2430|V2532",
     "Y37t|PD2443|V2443A",
+    "Y400 5G|V2506|V2506",
     "Y400 Pro 5G|V2439|V2439",
     "Y50 5G|PD2443|V2443A",
     "Y50m 5G|PD2443|V2443BA",
@@ -58463,7 +58470,7 @@
     "Zyrex ZA833|ZA833|ZA833",
     "zyrex|ZT216_7|ZT216_7"
   ],
-  "last_check": "2025-07-20 20:13:04",
+  "last_check": "2025-07-21 20:19:47",
   "github_count": 10060,
-  "google_count": 48400
+  "google_count": 48407
 }
