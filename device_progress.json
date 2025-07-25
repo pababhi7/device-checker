@@ -2736,6 +2736,9 @@
     "WEB-W10",
     "WEB-AL00",
     "WEB-AL10",
+    "MRDI-W00",
+    "MRDI-W10",
+    "MRDI-W20",
     "DBY2-W00",
     "DBY2-AL00",
     "BKY-W00",
@@ -19411,6 +19414,7 @@
     "A67W_Lite|A67W_Lite|A67W Lite",
     "A6_Plus|A6_Plus|A6 Plus",
     "AS65U|AS65U|AS65U",
+    "AS65U|AS65U|Sail 3",
     "C10|C10|C10",
     "FOXXD C65|FOXXD_C65|FOXXD C65",
     "FOXXD HTH C67|HTH_C67|FOXXD HTH C67",
@@ -49893,6 +49897,7 @@
     "P30_ROW|P30|P30_ROW",
     "P30_ROW|P30_B|P30",
     "P30_ROW|P30_B|P30_ROW",
+    "P30_ROW|P30_B|bnd",
     "P30_ROW|P30_ROW|P30",
     "P30_ROW|P30_ROW|P30_ROW",
     "P30_RUS|P30_RUS|P30_RUS",
@@ -58507,7 +58512,7 @@
     "Zyrex ZA833|ZA833|ZA833",
     "zyrex|ZT216_7|ZT216_7"
   ],
-  "last_check": "2025-07-24 20:19:46",
-  "github_count": 10072,
-  "google_count": 48432
+  "last_check": "2025-07-25 20:16:55",
+  "github_count": 10075,
+  "google_count": 48434
 }
