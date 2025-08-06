@@ -11856,6 +11856,7 @@
     "AQUA MatrixTV CE|deto|AQUA MatrixTV CE",
     "AQUA MatrixTV DE|omonia|AQUA MatrixTV DE",
     "AQUA MatrixTV EE|omonia|AQUA MatrixTV EE",
+    "AQUA MatrixTV FE|burrard|AQUA MatrixTV FE",
     "AQUA android TV|hanyang|AQUA Android TV",
     "S1 Jazz|S1_Jazz|S1 Jazz",
     "Arcelik Google TV|wanchai|Arcelik Google TV",
@@ -16652,6 +16653,7 @@
     "CP-L45s|CP-L45s|CP-L45s",
     "CP-W5s|CP-W5s|CP-W5s",
     "g06+|g06|g06",
+    "Calendar+|Calendar|CD-8V543F0",
     "Calendar+|Calendar|CD-8V543F2",
     "Calendar+|Calendar|Calendar+",
     "Crafty-IFPD|rk3588_t|ELP-4391K",
@@ -20919,6 +20921,7 @@
     "Pixel 5|redfin|Pixel 5",
     "Pixel 5a 5G|barbet|Pixel 5a",
     "Pixel 6|oriole|Pixel 6",
+    "Pixel 6 Pro|generic_arm64|Pixel 6 Pro",
     "Pixel 6 Pro|raven|Pixel 6 Pro",
     "Pixel 6a|bluejay|Pixel 6a",
     "Pixel 7|panther|Pixel 7",
@@ -26110,6 +26113,7 @@
     "PX1|PX1|PX1",
     "10.1-v2|Infinity-101-v2|Infinity-10.1-v2",
     "10.1-v3|Infinity_101_v3|Infinity-10.1-v3",
+    "IN-9679|mensa_an64|InfinityPro-Y1",
     "Infinity|Infinity|Infinity",
     "32X1|ikebukuro|AI PONT",
     "43X3|beaudry|Infinix AndroidTV",
@@ -30401,6 +30405,7 @@
     "ilium_PAD_RX10|RX10V6|Ilium_PAD_RX10V6",
     "ilium_S106|Ilium_S106|Ilium S106",
     "llium Pad L8|llium_Pad_L8|llium Pad L8",
+    "X11|X11|X11",
     "Cumulus 5 HD|Cumulus_5_HD|Cumulus_5_HD",
     "Cumulus 5.5 HD|Cumulus_55_HD|Cumulus_5.5_HD",
     "Cumulus 6 HD|Cumulus_6_HD|Cumulus_6_HD",
@@ -44400,6 +44405,8 @@
     "Galaxy Tab S10 FE+ 5G|gts10fep|SM-X626B",
     "Galaxy Tab S10 FE+ 5G|gts10fep|SM-X626C",
     "Galaxy Tab S10 FE+ 5G|gts10fep|SM-X626N",
+    "Galaxy Tab S10 Lite 5G|gts10lite|SM-X406B",
+    "Galaxy Tab S10 Lite 5G|gts10lite|SM-X406N",
     "Galaxy Tab S10 Ultra|gts10uwifi|SM-X920",
     "Galaxy Tab S10 Ultra 5G|gts10u|SM-X926B",
     "Galaxy Tab S10 Ultra 5G|gts10u|SM-X926C",
@@ -58651,7 +58658,7 @@
     "Zyrex ZA833|ZA833|ZA833",
     "zyrex|ZT216_7|ZT216_7"
   ],
-  "last_check": "2025-08-05 20:23:43",
+  "last_check": "2025-08-06 20:21:58",
   "github_count": 10078,
-  "google_count": 48570
+  "google_count": 48577
 }
