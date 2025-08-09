@@ -42114,6 +42114,7 @@
     "Galaxy A16 5G|a16x|SM-A166W",
     "Galaxy A16 5G|a16x|SM-S166V",
     "Galaxy A16 5G|a16xm|SM-A166P",
+    "Galaxy A17 5G|a17x|SM-A1760",
     "Galaxy A17 5G|a17x|SM-A176B",
     "Galaxy A2 Core|a2corelte|SM-A260F",
     "Galaxy A2 Core|a2corelte|SM-A260G",
@@ -42725,6 +42726,7 @@
     "Galaxy F14 5G|m14x|SM-E146B",
     "Galaxy F15 5G|m15x|SM-E156B",
     "Galaxy F16 5G|m16xm|SM-E166P",
+    "Galaxy F17 5G|a17x|SM-E176B",
     "Galaxy F22|f22|SM-E225F",
     "Galaxy F23 5G|m23xq|SM-E236B",
     "Galaxy F34 5G|m34x|SM-E346B",
@@ -43147,6 +43149,7 @@
     "Galaxy M14 5G|m14x|SM-M146B",
     "Galaxy M15 5G|m15x|SM-M156B",
     "Galaxy M16 5G|m16xm|SM-M166P",
+    "Galaxy M17 5G|a17x|SM-M176B",
     "Galaxy M20|m20|SM-M205N",
     "Galaxy M20|m20lte|SM-M205F",
     "Galaxy M20|m20lte|SM-M205FN",
@@ -58762,7 +58765,7 @@
     "Zyrex ZA833|ZA833|ZA833",
     "zyrex|ZT216_7|ZT216_7"
   ],
-  "last_check": "2025-08-08 20:20:00",
+  "last_check": "2025-08-09 20:12:41",
   "github_count": 10100,
-  "google_count": 48659
+  "google_count": 48662
 }
