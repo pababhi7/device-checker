@@ -11857,6 +11857,7 @@
     "PortableTV|SW3299T|SW3299T",
     "PortableTV|SW3299T|SW3299T-4K",
     "WF1589T|WF1589T|WF1589T",
+    "WF2189T|WF2189T|Apolosign Calendar",
     "WF2189T|WF2189T|WF2189T",
     "WF2489T|WF2489T|WF2489T",
     "WF3289T|WF3289T|WF3289T",
@@ -40685,6 +40686,7 @@
     "Redmi 14C|pond|2409BRN2CL",
     "Redmi 14C 5G|flame|2411DRN47I",
     "Redmi 15 5G|spring|25057RN09E",
+    "Redmi 15 5G|spring|25057RN09G",
     "Redmi 6|cereus|Redmi 6",
     "Redmi 7|onc|Redmi 7",
     "Redmi 7|onc|Redmi Y3",
@@ -41789,12 +41791,14 @@
     "P10_pro|P10|P10",
     "P11|P11|P11",
     "P11|P11|P13",
+    "P11_T_ROW|P11_T|P11_T",
     "P11_pro|P11|P11",
     "P11_pro_EEA|P11_pro_EEA|P11",
     "P11_pro_EEA|P11_pro_EEA|P11_pro_EEA",
     "SVITOO_P10|SVITOO_P10|P10",
     "TAB_P12_EEA|TAB_P12|TAB P12",
     "SWA310|SWA310|SWA310",
+    "SWA310_NEU|SWA310|BCGA92",
     "SWA310_NEU|SWA310|GMS_TAB10",
     "SWA310_NEU|SWA310|SWA310",
     "Asia|SW3_ATV|SWTV",
@@ -58765,7 +58769,7 @@
     "Zyrex ZA833|ZA833|ZA833",
     "zyrex|ZT216_7|ZT216_7"
   ],
-  "last_check": "2025-08-10 20:12:41",
+  "last_check": "2025-08-11 20:18:41",
   "github_count": 10100,
-  "google_count": 48662
+  "google_count": 48666
 }
