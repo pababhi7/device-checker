@@ -1,348 +1,116 @@
+ import os
+import json
 import requests
 from bs4 import BeautifulSoup
-import json
-import os
-import pytz
 from datetime import datetime
+import pytz
+import hashlib
 
-CHANGES_LOG = "changes_log.json"
+# === CONFIG ===
 KNOWN_DEVICES_FILE = "known_devices.json"
+CHANGES_LOG_FILE = "changes_log.json"
+IST = pytz.timezone("Asia/Kolkata")
 
-BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
-# ------------------------------
-# Helper: Load known devices
-# ------------------------------
+# === UTILS ===
 def load_known_devices():
     if os.path.exists(KNOWN_DEVICES_FILE):
         with open(KNOWN_DEVICES_FILE, "r", encoding="utf-8") as f:
             return set(json.load(f))
     return set()
 
-# ------------------------------
-# Helper: Save known devices
-# ------------------------------
 def save_known_devices(devices):
     with open(KNOWN_DEVICES_FILE, "w", encoding="utf-8") as f:
         json.dump(list(devices), f, ensure_ascii=False, indent=2)
 
-# ------------------------------
-# Helper: Append to changes log
-# ------------------------------
-def append_changes_log(entry):
-    if os.path.exists(CHANGES_LOG):
-        with open(CHANGES_LOG, "r", encoding="utf-8") as f:
-            logs = json.load(f)
+def append_changes_log(message):
+    log_entry = {
+        "timestamp": datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S"),
+        "message": message
+    }
+    if os.path.exists(CHANGES_LOG_FILE):
+        with open(CHANGES_LOG_FILE, "r", encoding="utf-8") as f:
+            log_data = json.load(f)
     else:
-        logs = []
+        log_data = []
+    log_data.append(log_entry)
+    with open(CHANGES_LOG_FILE, "w", encoding="utf-8") as f:
+        json.dump(log_data, f, ensure_ascii=False, indent=2)
 
-    logs.append({
-        "time": datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y-%m-%d %H:%M:%S"),
-        "entry": entry
-    })
-
-    with open(CHANGES_LOG, "w", encoding="utf-8") as f:
-        json.dump(logs, f, ensure_ascii=False, indent=2)
-
-# ------------------------------
-# Helper: Send Telegram message
-# ------------------------------
 def send_telegram_message(text):
-    if not BOT_TOKEN or not CHAT_ID:
-        print("❌ Telegram credentials missing")
-        return
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
     try:
-        requests.post(url, data={"chat_id": CHAT_ID, "text": text})
+        requests.post(url, data=payload, timeout=10)
     except Exception as e:
-        print(f"❌ Telegram send failed: {e}")
+        print(f"[ERROR] Telegram send failed: {e}")
 
-# ------------------------------
-# Scraping function
-# ------------------------------
-def check_cert_sites():
+def fingerprint(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+# === SCRAPER FUNCTIONS ===
+def fetch_nbtc():
+    url = "https://mocheck.nbtc.go.th/search-equipments"
+    r = requests.get(url, timeout=15)
+    soup = BeautifulSoup(r.text, "html.parser")
+    devices = []
+    for row in soup.select("table tbody tr"):
+        cols = [c.get_text(strip=True) for c in row.find_all("td")]
+        if cols:
+            devices.append(f"NBTC | {' | '.join(cols)}")
+    return devices
+
+def fetch_qi_wpc():
+    url = "https://www.wirelesspowerconsortium.com/products"
+    r = requests.get(url, timeout=15)
+    soup = BeautifulSoup(r.text, "html.parser")
+    devices = []
+    for row in soup.select("table tbody tr"):
+        cols = [c.get_text(strip=True) for c in row.find_all("td")]
+        if cols:
+            devices.append(f"Qi WPC | {' | '.join(cols)}")
+    return devices
+
+def fetch_audio_jp():
+    url = "https://www.tele.soumu.go.jp/giteki/SearchServlet?pageID=2"
+    r = requests.get(url, timeout=15)
+    soup = BeautifulSoup(r.text, "html.parser")
+    devices = []
+    for row in soup.select("table tbody tr"):
+        cols = [c.get_text(strip=True) for c in row.find_all("td")]
+        if cols:
+            devices.append(f"Audio JP | {' | '.join(cols)}")
+    return devices
+
+# === MAIN ===
+def run_scraper():
     known_devices = load_known_devices()
+    current_devices = set()
     new_devices = []
 
-    # Example websites — replace with actual cert site URLs
-    websites = [
-        {"source": "ExampleSite1", "url": "https://example.com/devices"},
-        {"source": "ExampleSite2", "url": "https://example2.com/devices"}
-    ]
+    sources = [fetch_nbtc, fetch_qi_wpc, fetch_audio_jp]
 
-    for site in websites:
+    for fetch_fn in sources:
         try:
-            r = requests.get(site["url"], timeout=15)
-            soup = BeautifulSoup(r.text, "html.parser")
-
-            # Replace with actual parsing logic for the site
-            devices_found = [d.text.strip() for d in soup.select(".device-name")]
-
-            for device in devices_found:
-                if device not in known_devices:
-                    known_devices.add(device)
-                    new_devices.append((site["source"], device))
-
+            for dev in fetch_fn():
+                fid = fingerprint(dev)
+                current_devices.add(fid)
+                if fid not in known_devices:
+                    new_devices.append(dev)
+                    append_changes_log(dev)
         except Exception as e:
-            print(f"❌ Error scraping {site['source']}: {e}")
+            print(f"[ERROR] {fetch_fn.__name__} failed: {e}")
 
-    # Notify & log new devices
-    for source, device in new_devices:
-        clean_msg = device[:200].replace("\n", " ")
-        append_changes_log(f"[{source}] NEW: {clean_msg}")
-        send_telegram_message(f"[{source}] NEW device: {clean_msg}")
-
-    # Save updated device list
     if new_devices:
-        save_known_devices(known_devices)
-
-
-if __name__ == "__main__":
-    check_cert_sites()
-        else:
-            logger.warning("Telegram responded %s: %s", r.status_code, r.text[:200])
-            return False
-    except Exception as e:
-        logger.exception("Telegram send failed: %s", e)
-        return False
-
-
-def append_changes_log(entry):
-    try:
-        with open(CHANGES_LOG, "a", encoding="utf-8") as f:
-            f.write(f"{now_str()} {entry}\n")
-    except Exception:
-        logger.exception("Failed to write changes log.")
-
-
-# --- Site-specific extractors (produce list of fingerprints + friendly info) ---
-def fetch_nbtc(session):
-    """
-    Returns list of tuples (fingerprint, dict with info)
-    """
-    url = "https://hub.nbtc.go.th/api/certification"
-    result = []
-    try:
-        r = session.get(url, timeout=20)
-        r.raise_for_status()
-        data = r.json()
-        for item in data:
-            # prefer stable fields if available:
-            model_code = item.get("model_code") or item.get("model") or item.get("modelCode")
-            device_type = item.get("device_type") or item.get("type") or ""
-            manufacturer = item.get("brand") or item.get("manufacturer") or item.get("company")
-            # fingerprint: prefer model_code + manufacturer + device_type
-            if model_code:
-                fp = fingerprint_from_fields(model_code, manufacturer, device_type)
-            elif "id" in item:
-                fp = fingerprint_from_fields(item.get("id"), device_type)
-            else:
-                fp = fingerprint_from_json(item)
-            info = {"source": "NBTC", "model_code": model_code, "manufacturer": manufacturer, "device_type": device_type, "raw": item}
-            # filter smartphone keywords - keep only mobile-like devices
-            dtype_lower = normalize_text(device_type)
-            if any(k in dtype_lower for k in SMARTPHONE_KEYWORDS) or model_code:
-                result.append((fp, info))
-        logger.info("NBTC: fetched %d records", len(result))
-    except Exception as e:
-        logger.exception("NBTC fetch error: %s", e)
-    return result
-
-
-def fetch_qi_wpc(session, use_playwright=False):
-    """
-    Returns list of tuples (fingerprint, dict with info)
-    """
-    result = []
-    api_url = "https://jpsapi.wirelesspowerconsortium.com/products/qi"
-    try:
-        # API first
-        r = session.get(api_url, timeout=20, headers={"Accept": "application/json"})
-        r.raise_for_status()
-        data = r.json()
-        for item in data.get("products", []):
-            pid = item.get("id")
-            name = item.get("name") or item.get("product_name")
-            if pid:
-                fp = fingerprint_from_fields(pid, name)
-            else:
-                fp = fingerprint_from_json(item)
-            info = {"source": "Qi WPC", "id": pid, "name": name, "raw": item}
-            result.append((fp, info))
-        logger.info("Qi WPC (API): fetched %d products", len(result))
-        return result
-    except Exception as e:
-        logger.warning("Qi WPC API failed: %s", e)
-        if not use_playwright:
-            # Playwright fallback if available
-            logger.info("Attempting Playwright fallback for Qi WPC...")
-        else:
-            logger.info("Playwright fallback already requested.")
-
-    # Playwright fallback
-    try:
-        with sync_playwright() as pw:
-            browser = pw.chromium.launch(headless=True)
-            ctx = browser.new_context(viewport={"width": 1280, "height": 800})
-            page = ctx.new_page()
-            page.goto("https://www.wirelesspowerconsortium.com/products/qi.html", timeout=60000)
-            # wait a bit for dynamic table to populate - adjust if necessary
-            page.wait_for_timeout(8000)
-            html = page.content()
-            browser.close()
-        soup = BeautifulSoup(html, "html.parser")
-        for row in soup.select("table#product_db tbody tr"):
-            cols = row.find_all("td")
-            if len(cols) >= 3:
-                pid = normalize_text(cols[1].text)
-                name = normalize_text(cols[2].text)
-                fp = fingerprint_from_fields(pid, name) if pid else fingerprint_from_fields(name)
-                info = {"source": "Qi WPC", "id": pid, "name": name, "raw": {"row_html": str(row)[:800]}}
-                result.append((fp, info))
-        logger.info("Qi WPC (Playwright): fetched %d products", len(result))
-    except PWTimeout as e:
-        logger.exception("Playwright timeout for Qi WPC: %s", e)
-    except Exception as e:
-        logger.exception("Qi WPC Playwright fallback error: %s", e)
-
-    return result
-
-
-def fetch_audio_jp(session):
-    result = []
-    url = "https://www.jas-audio.or.jp/english/hi-res-logo-en/use-situation-en"
-    try:
-        r = session.get(url, timeout=20)
-        r.raise_for_status()
-        soup = BeautifulSoup(r.text, "html.parser")
-        table = soup.select_one("table#tablepress-1")
-        if not table:
-            logger.warning("Audio JP: expected table#tablepress-1 not found")
-            return result
-        for row in table.select("tbody tr"):
-            cols = row.find_all("td")
-            # index assumptions may change; we attempt to recover gracefully
-            if len(cols) >= 4:
-                device_id = normalize_text(cols[2].text)
-                device_type = normalize_text(cols[3].text)
-                name = device_id or normalize_text(cols[0].text or cols[1].text)
-                fp = fingerprint_from_fields(name, device_type)
-                info = {"source": "Audio JP", "id": device_id, "name": name, "device_type": device_type, "raw": [c.text for c in cols]}
-                # keep if smartphone keywords in device_type OR some id/name exists
-                if any(k in device_type for k in SMARTPHONE_KEYWORDS) or device_id or name:
-                    result.append((fp, info))
-        logger.info("Audio JP: fetched %d records", len(result))
-    except Exception as e:
-        logger.exception("Audio JP fetch error: %s", e)
-    return result
-
-
-# --- Runner that compares with progress and sends notifications ---
-def run_once(simulate=False, force_notify=False):
-    logger.info("=== Cert Sites Scraper run started (%s) ===", now_str())
-    session = requests_session_with_retries(total=3, backoff=0.5)
-
-    progress = load_progress()
-    first_run = not progress.get("initialized", False)
-    if simulate:
-        logger.info("SIMULATE mode: clearing progress to force notifications for testing.")
-        progress["nbtc"] = []
-        progress["qi_wpc"] = []
-        progress["audio_jp"] = []
-        progress["initialized"] = True  # we simulate baseline existed previously but emptied to test
-
-    # fetch each site
-    nbtc_list = fetch_nbtc(session)
-    qi_list = fetch_qi_wpc(session)
-    audio_list = fetch_audio_jp(session)
-
-    # helper to compare and produce new list
-    def compare_and_notify(site_key, items, url_label=None):
-        """
-        items: list of tuples (fp, info)
-        site_progress = progress[site_key] = list of fp strings
-        returns list of new info dicts
-        """
-        existing = set(progress.get(site_key, []))
-        current_fps = []
-        new_infos = []
-        for fp, info in items:
-            current_fps.append(fp)
-            if fp not in existing:
-                # new device
-                new_infos.append((fp, info))
-        # notify if not first run or force_notify
-        if (not first_run or force_notify) and new_infos:
-            for fp, info in new_infos:
-                # build friendly message
-                if info["source"] == "NBTC":
-                    model = info.get("model_code") or info["raw"].get("model_code") or ""
-                    man = info.get("manufacturer") or ""
-                    dtype = info.get("device_type") or ""
-                    msg = (f"🆕 <b>NBTC</b> new device:\n"
-                           f"<b>Model:</b> {model}\n<b>Manufacturer:</b> {man}\n<b>Type:</b> {dtype}\n"
-                           f"<a href='https://hub.nbtc.go.th/certification'>NBTC Link</a>")
-                elif info["source"] == "Qi WPC":
-                    name = info.get("name") or info.get("raw", {}).get("name", "")
-                    pid = info.get("id") or ""
-                    msg = (f"🆕 <b>Qi WPC</b> new product:\n<b>Name:</b> {name}\n<b>ID:</b> {pid}\n"
-                           f"<a href='https://www.wirelesspowerconsortium.com/products/qi.html'>Qi WPC Link</a>")
-                else:  # Audio JP
-                    name = info.get("name") or ""
-                    dtype = info.get("device_type") or ""
-                    msg = (f"🆕 <b>Audio JP</b> new device:\n<b>Name/ID:</b> {name}\n<b>Type:</b> {dtype}\n"
-                           f"<a href='https://www.jas-audio.or.jp/english/hi-res-logo-en/use-situation-en'>Audio JP Link</a>")
-
-                ok = send_telegram_message(msg)
-                append_changes_log(f"{info['source']} NEW: {msg[:200].replace('\\n',' | ')}")
-                logger.info("Notified new device for %s (sent=%s): %s", info["source"], ok, info)
-        else:
-            if first_run and not force_notify:
-                logger.info("First run: baseline established for %s; skipping per-device notifications.", site_key)
-        # update progress lists
-        progress[site_key] = current_fps
-        return len(current_fps), len(new_infos)
-
-    # compare & notify
-    nbtc_total, nbtc_new_count = compare_and_notify("nbtc", nbtc_list, url_label="NBTC")
-    qi_total, qi_new_count = compare_and_notify("qi_wpc", qi_list, url_label="QiWPC")
-    audio_total, audio_new_count = compare_and_notify("audio_jp", audio_list, url_label="AudioJP")
-
-    # summary
-    summary = (
-        "✅ <b>Certification site check completed</b>\n"
-        f"Time: {now_str()}\n\n"
-        f"📊 <b>Current device totals:</b>\n"
-        f"• NBTC: {nbtc_total}\n"
-        f"• Qi WPC: {qi_total}\n"
-        f"• Audio JP: {audio_total}\n\n"
-        f"🆕 <b>New devices this run:</b>\n"
-        f"• NBTC: {nbtc_new_count}\n"
-        f"• Qi WPC: {qi_new_count}\n"
-        f"• Audio JP: {audio_new_count}"
-    )
-    # send baseline or summary
-    if first_run and not force_notify:
-        send_telegram_message("🚨 <b>Baseline established!</b>\nAll current devices are tracked now; you will receive notifications for new items from subsequent runs.\n\n" + summary)
+        msg = "📢 New devices found:\n" + "\n".join(new_devices)
+        send_telegram_message(msg)
+        print(msg)
     else:
-        send_telegram_message(summary)
+        print("[INFO] No new devices found.")
 
-    # Save progress (mark initialized)
-    progress["initialized"] = True
-    save_progress(progress)
-    logger.info("=== Run finished ===")
-
-
-# --- CLI ---
-def main():
-    parser = argparse.ArgumentParser(description="Cert Sites Scraper")
-    parser.add_argument("--simulate", action="store_true", help="Simulate new devices by clearing progress (for testing).")
-    parser.add_argument("--force-notify", action="store_true", help="Force notifications even on first run.")
-    args = parser.parse_args()
-
-    run_once(simulate=args.simulate, force_notify=args.force_notify)
-
+    save_known_devices(current_devices)
 
 if __name__ == "__main__":
-    main()
+    run_scraper()
