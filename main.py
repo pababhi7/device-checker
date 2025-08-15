@@ -71,10 +71,12 @@ def load_progress():
         print(f"✗ Error loading progress: {e}")
         return None
 
-def save_progress(github_list, google_list):
+def save_progress(github_list, google_list, seen_github, seen_google):
     data = {
         "github": github_list,
         "google": google_list,
+        "seen_github": list(seen_github),  # Store all-time seen devices
+        "seen_google": list(seen_google),
         "last_check": datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y-%m-%d %H:%M:%S"),
         "github_count": len(github_list),
         "google_count": len(google_list)
@@ -123,6 +125,9 @@ def main():
         progress = load_progress()
         first_run = progress is None
 
+        seen_github = set(progress.get("seen_github", [])) if progress else set()
+        seen_google = set(progress.get("seen_google", [])) if progress else set()
+
         # Fetch device data
         github_df = get_github_devices_df()
         google_df = get_google_devices_df()
@@ -151,16 +156,18 @@ def main():
                 google_df["unique_key"] = google_df[google_key_cols].astype(str).agg("|".join, axis=1)
                 google_keys = google_df["unique_key"].tolist()
 
-        # Compare with previous run
+        # Compare with previous run & avoid duplicates forever
         if first_run:
             new_github_keys = set()
             new_google_keys = set()
             print("🎯 First run - establishing baseline")
+            seen_github.update(github_keys)
+            seen_google.update(google_keys)
         else:
-            prev_github_keys = set(progress.get("github", []))
-            prev_google_keys = set(progress.get("google", []))
-            new_github_keys = set(github_keys) - prev_github_keys
-            new_google_keys = set(google_keys) - prev_google_keys
+            new_github_keys = set(github_keys) - seen_github
+            new_google_keys = set(google_keys) - seen_google
+            seen_github.update(new_github_keys)
+            seen_google.update(new_google_keys)
 
         new_github_count = len(new_github_keys)
         new_google_count = len(new_google_keys)
@@ -172,14 +179,13 @@ def main():
         if first_run:
             send_telegram_message(
                 "🚀 <b>Device checker is now active!</b>\n"
-                f"Running daily at 8:00 PM IST via GitHub Actions\n\n"
+                f"Running daily at 5:00 PM IST via GitHub Actions\n\n"
                 f"📊 <b>Baseline established:</b>\n"
                 f"• GitHub: {github_total} devices\n"
                 f"• Google: {google_total} devices\n\n"
                 "✅ You'll receive notifications for new devices from tomorrow!"
             )
         else:
-            # Send new device notifications
             for key in new_github_keys:
                 row = github_df[github_df["unique_key"] == key].iloc[0]
                 send_telegram_message(format_device_row(row, "GitHub"))
@@ -190,7 +196,6 @@ def main():
                 send_telegram_message(format_device_row(row, "Google"))
                 time.sleep(1)
 
-            # Send completion summary
             completion_time = datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y-%m-%d %H:%M:%S")
             
             if total_new > 0:
@@ -218,7 +223,7 @@ def main():
             send_telegram_message(summary)
 
         # Save progress
-        save_progress(github_keys, google_keys)
+        save_progress(github_keys, google_keys, seen_github, seen_google)
         print("✅ Script completed successfully")
 
     except Exception as e:
