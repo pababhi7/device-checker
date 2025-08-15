@@ -99,7 +99,7 @@ def check_cert_sites():
 
 
 if __name__ == "__main__":
-    check_cert_sites()            return True
+    check_cert_sites()
         else:
             logger.warning("Telegram responded %s: %s", r.status_code, r.text[:200])
             return False
