@@ -2,8 +2,8 @@ name: Device Checker
 
 on:
   schedule:
-    # Runs at 8:00 PM IST (2:30 PM UTC) every day
-    - cron: '30 14 * * *'
+    # Runs at 5:00 PM IST (11:30 AM UTC) every day
+    - cron: '30 11 * * *'
   
   # Allows manual triggering from GitHub Actions tab
   workflow_dispatch:
@@ -51,4 +51,3 @@ jobs:
           git push
         else
           echo "No changes to commit"
-        fi
