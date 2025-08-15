@@ -1,156 +1,105 @@
-#!/usr/bin/env python3
-"""
-Robust certification site scraper with change-detection and Telegram notifications.
-
-Usage:
-  python main_cert_sites.py           # normal run
-  python main_cert_sites.py --simulate  # force simulate 'new devices' to test notifications
-  python main_cert_sites.py --once      # run once (same as normal) kept for clarity
-"""
-
-import os
-import json
-import time
-import tempfile
-import hashlib
-import argparse
-import logging
-from datetime import datetime
-import pytz
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
-from filelock import FileLock, Timeout
-from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
+import json
+import os
+import pytz
+from datetime import datetime
 
-# --- Configuration ---
-PROGRESS_FILE = "cert_sites_progress.json"
-PROGRESS_LOCK = PROGRESS_FILE + ".lock"
-LOG_FILE = "cert_sites.log"
-CHANGES_LOG = "changes.log"
-TIMEZONE = "Asia/Kolkata"
-SMARTPHONE_KEYWORDS = [
-    "phone", "mobile", "smartphone", "smart phone", "mobile phone", "5g digital mobile phone"
-]
+CHANGES_LOG = "changes_log.json"
+KNOWN_DEVICES_FILE = "known_devices.json"
 
-# --- Telegram ---
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
-# --- Logging setup ---
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s: %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(LOG_FILE, encoding="utf-8"),
-    ],
-)
-logger = logging.getLogger("certscraper")
+# ------------------------------
+# Helper: Load known devices
+# ------------------------------
+def load_known_devices():
+    if os.path.exists(KNOWN_DEVICES_FILE):
+        with open(KNOWN_DEVICES_FILE, "r", encoding="utf-8") as f:
+            return set(json.load(f))
+    return set()
 
+# ------------------------------
+# Helper: Save known devices
+# ------------------------------
+def save_known_devices(devices):
+    with open(KNOWN_DEVICES_FILE, "w", encoding="utf-8") as f:
+        json.dump(list(devices), f, ensure_ascii=False, indent=2)
 
-# --- Utility helpers ---
-def now_str():
-    return datetime.now(pytz.timezone(TIMEZONE)).strftime("%Y-%m-%d %H:%M:%S")
+# ------------------------------
+# Helper: Append to changes log
+# ------------------------------
+def append_changes_log(entry):
+    if os.path.exists(CHANGES_LOG):
+        with open(CHANGES_LOG, "r", encoding="utf-8") as f:
+            logs = json.load(f)
+    else:
+        logs = []
 
-
-def safe_write_json(path, data):
-    # atomic write
-    fd, tmp = tempfile.mkstemp(prefix="tmp_", dir=".")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        os.replace(tmp, path)
-    except Exception:
-        if os.path.exists(tmp):
-            os.remove(tmp)
-        raise
-
-
-def normalize_text(s):
-    if not s:
-        return ""
-    return " ".join(str(s).strip().lower().split())
-
-
-def fingerprint_from_fields(*fields):
-    joined = "||".join(normalize_text(str(f) if f is not None else "") for f in fields)
-    # stable short hash
-    return hashlib.sha256(joined.encode("utf-8")).hexdigest()
-
-
-def fingerprint_from_json(obj):
-    try:
-        # deterministic representation
-        text = json.dumps(obj, sort_keys=True, ensure_ascii=False)
-    except Exception:
-        text = str(obj)
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-def requests_session_with_retries(total=3, backoff=1.0, status_forcelist=(429, 500, 502, 503, 504)):
-    session = requests.Session()
-    retries = Retry(total=total, backoff_factor=backoff, status_forcelist=status_forcelist, allowed_methods=False)
-    adapter = HTTPAdapter(max_retries=retries)
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-    session.headers.update({
-        "User-Agent": "CertSitesScraper/1.0 (+https://example.com)"
+    logs.append({
+        "time": datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%Y-%m-%d %H:%M:%S"),
+        "entry": entry
     })
-    return session
 
+    with open(CHANGES_LOG, "w", encoding="utf-8") as f:
+        json.dump(logs, f, ensure_ascii=False, indent=2)
 
-# --- Progress file handling with file lock ---
-def load_progress():
-    default = {"nbtc": [], "qi_wpc": [], "audio_jp": [], "last_check": "", "initialized": False}
-    try:
-        lock = FileLock(PROGRESS_LOCK, timeout=5)
-        with lock:
-            if not os.path.exists(PROGRESS_FILE):
-                logger.info("No progress file found - creating baseline on first save.")
-                return default
-            with open(PROGRESS_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                # ensure keys exist
-                for k in default:
-                    if k not in data:
-                        data[k] = default[k]
-                return data
-    except Timeout:
-        logger.error("Timeout acquiring progress file lock. Proceeding without progress load (risk of duplicate notifications).")
-        return default
-    except Exception as e:
-        logger.exception("Failed to load progress file, using default: %s", e)
-        return default
-
-
-def save_progress(progress):
-    progress["last_check"] = now_str()
-    try:
-        lock = FileLock(PROGRESS_LOCK, timeout=5)
-        with lock:
-            safe_write_json(PROGRESS_FILE, progress)
-            logger.info("Progress saved.")
-    except Timeout:
-        logger.error("Timeout acquiring progress file lock. Progress not saved.")
-    except Exception:
-        logger.exception("Failed to save progress.")
-
-
-# --- Telegram sender ---
-def send_telegram_message(message):
+# ------------------------------
+# Helper: Send Telegram message
+# ------------------------------
+def send_telegram_message(text):
     if not BOT_TOKEN or not CHAT_ID:
-        logger.error("Telegram credentials are not set. Skipping send: %s", message[:60])
-        return False
+        print("❌ Telegram credentials missing")
+        return
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML", "disable_web_page_preview": True}
     try:
-        s = requests_session_with_retries(total=2, backoff=0.5)
-        r = s.post(url, data=payload, timeout=10)
-        if r.status_code == 200:
-            logger.info("Telegram message sent.")
-            return True
+        requests.post(url, data={"chat_id": CHAT_ID, "text": text})
+    except Exception as e:
+        print(f"❌ Telegram send failed: {e}")
+
+# ------------------------------
+# Scraping function
+# ------------------------------
+def check_cert_sites():
+    known_devices = load_known_devices()
+    new_devices = []
+
+    # Example websites — replace with actual cert site URLs
+    websites = [
+        {"source": "ExampleSite1", "url": "https://example.com/devices"},
+        {"source": "ExampleSite2", "url": "https://example2.com/devices"}
+    ]
+
+    for site in websites:
+        try:
+            r = requests.get(site["url"], timeout=15)
+            soup = BeautifulSoup(r.text, "html.parser")
+
+            # Replace with actual parsing logic for the site
+            devices_found = [d.text.strip() for d in soup.select(".device-name")]
+
+            for device in devices_found:
+                if device not in known_devices:
+                    known_devices.add(device)
+                    new_devices.append((site["source"], device))
+
+        except Exception as e:
+            print(f"❌ Error scraping {site['source']}: {e}")
+
+    # Notify & log new devices
+    for source, device in new_devices:
+        clean_msg = device[:200].replace("\n", " ")
+        append_changes_log(f"[{source}] NEW: {clean_msg}")
+        send_telegram_message(f"[{source}] NEW device: {clean_msg}")
+
+    # Save updated device list
+    if new_devices:
+        save_known_devices(known_devices)
+
+
+if __name__ == "__main__":
+    check_cert_sites()            return True
         else:
             logger.warning("Telegram responded %s: %s", r.status_code, r.text[:200])
             return False
